@@ -1,1 +1,1 @@
-"""Custom components module."""
+"""Bouncie custom component module."""
