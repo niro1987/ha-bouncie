@@ -5,10 +5,9 @@ from aiohttp.client_exceptions import ClientResponseError
 from aiohttp.web_exceptions import HTTPUnauthorized
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
 from homeassistant.helpers.typing import ConfigType
 
-from .api import BouncieAPI
+from .api import BouncieAPI, BouncieSession
 from .common import (
     BouncieOAuth2Implementation,
     BouncieVehiclesDataUpdateCoordinator,
@@ -55,7 +54,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         OAUTH2_TOKEN,
     )
     BouncieOAuth2FlowHandler.async_register_implementation(hass, implementation)
-    api = BouncieAPI(OAuth2Session(hass, entry, implementation))
+    api = BouncieAPI(BouncieSession(hass, entry, implementation))
     vehicles_coordinator = BouncieVehiclesDataUpdateCoordinator(hass, api)
     await vehicles_coordinator.async_refresh()
     hass.data[DOMAIN][entry.entry_id][API] = api
