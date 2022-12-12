@@ -1,116 +1,123 @@
-"""Adds config flow for Blueprint."""
+"""Config flow for Bouncie Automation."""
+import logging
+from typing import Any, Dict, Optional
+
 from homeassistant import config_entries
-from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant.util import slugify
 import voluptuous as vol
 
-from .api import IntegrationBlueprintApiClient
+from .common import BouncieOAuth2Implementation, valid_external_url
 from .const import (
-    CONF_PASSWORD,
-    CONF_USERNAME,
+    BOUNCIE_SCHEMA,
+    CONF_API_KEY,
+    CONF_CLIENT_ID,
+    CONF_CLIENT_SECRET,
     DOMAIN,
-    PLATFORMS,
+    OAUTH2_AUTHORIZE,
+    OAUTH2_TOKEN,
 )
 
+_LOGGER = logging.getLogger(__name__)
 
-class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """Config flow for Blueprint."""
 
+class BouncieOAuth2FlowHandler(
+    config_entry_oauth2_flow.AbstractOAuth2FlowHandler, domain=DOMAIN
+):
+    """Config flow to handle Bouncie Automation OAuth2 authentication."""
+
+    DOMAIN = DOMAIN
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
-    def __init__(self):
-        """Initialize."""
-        self._errors = {}
+    @property
+    def logger(self) -> logging.Logger:
+        """Return logger."""
+        return _LOGGER
 
-    async def async_step_user(self, user_input=None):
-        """Handle a flow initialized by the user."""
-        self._errors = {}
+    def __init__(self) -> None:
+        """Instantiate config flow."""
+        self._stored_data = {}
+        super().__init__()
 
-        # Uncomment the next 2 lines if only a single instance of the integration is allowed:
-        # if self._async_current_entries():
-        #     return self.async_abort(reason="single_instance_allowed")
+    async def async_step_user(
+        self, user_input: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Handle a flow start."""
+        if not valid_external_url(self.hass):
+            return self.async_abort(reason="no_external_url")
 
-        if user_input is not None:
-            valid = await self._test_credentials(
-                user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
+        if user_input is None:
+            return self.async_show_form(step_id="user", data_schema=BOUNCIE_SCHEMA)
+
+        if user_input:
+            _LOGGER.info("config_flow: %s", user_input)
+            await self.async_set_unique_id(
+                f"{DOMAIN}_{slugify(user_input[CONF_CLIENT_ID])}",
+                raise_on_progress=True,
             )
-            if valid:
-                return self.async_create_entry(
-                    title=user_input[CONF_USERNAME], data=user_input
-                )
-            else:
-                self._errors["base"] = "auth"
+            self.hass.data.setdefault(DOMAIN, {})
+            self.async_register_implementation(
+                self.hass,
+                BouncieOAuth2Implementation(
+                    self.hass,
+                    DOMAIN,
+                    user_input[CONF_CLIENT_ID],
+                    user_input[CONF_CLIENT_SECRET],
+                    user_input[CONF_API_KEY],
+                    OAUTH2_AUTHORIZE,
+                    OAUTH2_TOKEN,
+                ),
+            )
 
-            return await self._show_config_form(user_input)
+        return await self.async_step_pick_implementation()
 
-        user_input = {}
-        # Provide defaults for form
-        user_input[CONF_USERNAME] = ""
-        user_input[CONF_PASSWORD] = ""
+    async def async_step_reauth(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Perform reauth when OAuth token is invalid."""
+        self._stored_data = {
+            CONF_CLIENT_ID: user_input[CONF_CLIENT_ID],
+            CONF_CLIENT_SECRET: user_input[CONF_CLIENT_SECRET],
+            CONF_API_KEY: user_input[CONF_API_KEY],
+        }
+        return await self.async_step_reauth_confirm()
 
-        return await self._show_config_form(user_input)
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry):
-        return BlueprintOptionsFlowHandler(config_entry)
-
-    async def _show_config_form(self, user_input):  # pylint: disable=unused-argument
-        """Show the configuration form to edit location data."""
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME, default=user_input[CONF_USERNAME]): str,
-                    vol.Required(CONF_PASSWORD, default=user_input[CONF_PASSWORD]): str,
-                }
-            ),
-            errors=self._errors,
-        )
-
-    async def _test_credentials(self, username, password):
-        """Return true if credentials is valid."""
-        try:
-            session = async_create_clientsession(self.hass)
-            client = IntegrationBlueprintApiClient(username, password, session)
-            await client.async_get_data()
-            return True
-        except Exception:  # pylint: disable=broad-except
-            pass
-        return False
-
-
-class BlueprintOptionsFlowHandler(config_entries.OptionsFlow):
-    """Blueprint config flow options handler."""
-
-    def __init__(self, config_entry):
-        """Initialize HACS options flow."""
-        self.config_entry = config_entry
-        self.options = dict(config_entry.options)
-
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
-        """Manage the options."""
+    async def async_step_reauth_confirm(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Confirm reauth."""
+        if user_input is None:
+            return self.async_show_form(
+                step_id="reauth_confirm", data_schema=vol.Schema({})
+            )
         return await self.async_step_user()
 
-    async def async_step_user(self, user_input=None):
-        """Handle a flow initialized by the user."""
-        if user_input is not None:
-            self.options.update(user_input)
-            return await self._update_options()
+    async def async_oauth_create_entry(
+        self, data: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """Create an entry for the flow."""
+        # Update existing entry if performing reauth
+        if self.source == config_entries.SOURCE_REAUTH:
+            data.update(self._stored_data)
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.unique_id == self.unique_id:
+                    self.hass.config_entries.async_update_entry(entry, data=data)
+                    self.hass.async_create_task(
+                        self.hass.config_entries.async_reload(entry.entry_id)
+                    )
+                    return self.async_abort(reason="reauth_successful")
 
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(x, default=self.options.get(x, True)): bool
-                    for x in sorted(PLATFORMS)
-                }
-            ),
+        data.update(
+            {
+                CONF_CLIENT_ID: self.flow_impl.client_id,
+                CONF_CLIENT_SECRET: self.flow_impl.client_secret,
+                CONF_API_KEY: self.flow_impl.api_key,
+            }
         )
-
-    async def _update_options(self):
-        """Update config entry options."""
-        return self.async_create_entry(
-            title=self.config_entry.data.get(CONF_USERNAME), data=self.options
-        )
+        if not self.unique_id:
+            await self.async_set_unique_id(
+                f"{DOMAIN}_{slugify(self.flow_impl.client_id)}", raise_on_progress=True
+            )
+            self._abort_if_unique_id_configured()
+        return self.async_create_entry(title=DOMAIN, data=data)

@@ -1,109 +1,102 @@
-"""
-Custom integration to integrate Bouncie with Home Assistant.
+"""The Bouncie integration."""
+from logging import getLogger
 
-For more details about this integration, please refer to
-https://github.com/niro1987/ha-bouncie
-"""
-import asyncio
-from datetime import timedelta
-import logging
+from aiohttp.client_exceptions import ClientResponseError
+from aiohttp.web_exceptions import HTTPUnauthorized
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
+from homeassistant.helpers.typing import ConfigType
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import Config, HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-
-from .api import IntegrationBlueprintApiClient
-
+from .api import BouncieAPI
+from .common import (
+    BouncieOAuth2Implementation,
+    BouncieVehiclesDataUpdateCoordinator,
+    BouncieWebhookRequestView,
+    valid_external_url,
+)
+from .config_flow import BouncieOAuth2FlowHandler
 from .const import (
-    CONF_PASSWORD,
-    CONF_USERNAME,
+    API,
+    CONF_API_KEY,
+    CONF_CLIENT_ID,
+    CONF_CLIENT_SECRET,
     DOMAIN,
+    OAUTH2_AUTHORIZE,
+    OAUTH2_TOKEN,
     PLATFORMS,
-    STARTUP_MESSAGE,
+    VEHICLES_COORDINATOR,
 )
 
-SCAN_INTERVAL = timedelta(seconds=30)
-
-_LOGGER: logging.Logger = logging.getLogger(__package__)
+_LOGGER = getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, config: Config):
-    """Set up this integration using YAML is not supported."""
+async def async_setup(hass: HomeAssistant, _: ConfigType):
+    """Set up the Bouncie component."""
+    if not valid_external_url(hass):
+        return False
+
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up this integration using UI."""
-    if hass.data.get(DOMAIN) is None:
-        hass.data.setdefault(DOMAIN, {})
-        _LOGGER.info(STARTUP_MESSAGE)
+    """Set up Bouncie from a config entry."""
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN].setdefault(entry.entry_id, {})
+    hass.data[DOMAIN].setdefault(CONF_CLIENT_ID, set())
 
-    username = entry.data.get(CONF_USERNAME)
-    password = entry.data.get(CONF_PASSWORD)
+    implementation = BouncieOAuth2Implementation(
+        hass,
+        DOMAIN,
+        entry.data[CONF_CLIENT_ID],
+        entry.data[CONF_CLIENT_SECRET],
+        entry.data[CONF_API_KEY],
+        OAUTH2_AUTHORIZE,
+        OAUTH2_TOKEN,
+    )
+    BouncieOAuth2FlowHandler.async_register_implementation(hass, implementation)
+    api = BouncieAPI(OAuth2Session(hass, entry, implementation))
+    vehicles_coordinator = BouncieVehiclesDataUpdateCoordinator(hass, api)
+    await vehicles_coordinator.async_refresh()
+    hass.data[DOMAIN][entry.entry_id][API] = api
+    hass.data[DOMAIN][entry.entry_id][VEHICLES_COORDINATOR] = vehicles_coordinator
+    hass.data[DOMAIN][CONF_CLIENT_ID].add(entry.data[CONF_CLIENT_ID])
 
-    session = async_get_clientsession(hass)
-    client = IntegrationBlueprintApiClient(username, password, session)
+    try:
+        await api.async_get_user()
+    except (HTTPUnauthorized, ClientResponseError) as err:
+        if isinstance(err, ClientResponseError) and err.status not in (400, 401):
+            return False
 
-    coordinator = BlueprintDataUpdateCoordinator(hass, client=client)
-    await coordinator.async_refresh()
+        # If we are not authorized, we need to revalidate OAuth
+        if not [
+            flow
+            for flow in hass.config_entries.flow.async_progress()
+            if flow["context"]["source"] == SOURCE_REAUTH
+            and flow["context"]["unique_id"] == entry.unique_id
+        ]:
+            hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": SOURCE_REAUTH, "unique_id": entry.unique_id},
+                    data=entry.data,
+                )
+            )
+        return False
 
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
-
-    hass.data[DOMAIN][entry.entry_id] = coordinator
+    # Register view
+    hass.http.register_view(BouncieWebhookRequestView())
 
     for platform in PLATFORMS:
-        if entry.options.get(platform, True):
-            coordinator.platforms.append(platform)
-            hass.async_add_job(
-                hass.config_entries.async_forward_entry_setup(entry, platform)
-            )
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
 
-    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     return True
 
 
-class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching data from the API."""
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
+    """Unload a config entry."""
+    hass.data[DOMAIN].pop(config_entry.entry_id)
 
-    def __init__(
-        self, hass: HomeAssistant, client: IntegrationBlueprintApiClient
-    ) -> None:
-        """Initialize."""
-        self.api = client
-        self.platforms = []
-
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=SCAN_INTERVAL)
-
-    async def _async_update_data(self):
-        """Update data via library."""
-        try:
-            return await self.api.async_get_data()
-        except Exception as exception:
-            raise UpdateFailed() from exception
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Handle removal of an entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
-    unloaded = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-                if platform in coordinator.platforms
-            ]
-        )
-    )
-    if unloaded:
-        hass.data[DOMAIN].pop(entry.entry_id)
-
-    return unloaded
-
-
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    return True
