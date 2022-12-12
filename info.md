@@ -9,9 +9,10 @@ _Component to integrate with [Bouncie][bouncie]._
 
 Platform | Description
 -- | --
-`binary_sensor` | Show something `True` or `False`.
-`sensor` | Show info from API.
-`switch` | Switch something `True` or `False`.
+`device_tracker` | Vehicle tracker.
+`sensor` | Odometer, Fuel Level, Speed sensor.
+
+![bouncie][bouncieimg]
 
 {% if not installed %}
 ## Installation
@@ -29,6 +30,7 @@ Platform | Description
 ***
 
 [bouncie]: https://github.com/niro1987/ha-bouncie
+[bouncieimg]: bouncie.webp
 [user_profile]: https://github.com/niro1987
 [user_profile-shield]: https://img.shields.io/badge/maintainer-Niels%20Perfors%20%40niro1987-blue.svg?style=for-the-badge
 [buymecoffee]: https://www.buymeacoffee.com/niro1987
