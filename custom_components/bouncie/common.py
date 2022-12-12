@@ -1,7 +1,7 @@
 """Common classes and functions for Bouncie."""
 from http import HTTPStatus
 from logging import getLogger
-from typing import Any, Dict, List
+from typing import Any
 
 from aiohttp.web import Request, Response
 from homeassistant.components.http.view import HomeAssistantView
@@ -164,6 +164,7 @@ class BouncieVehiclesDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         """Update data via library."""
+        _LOGGER.info("Refresh data")
         try:
             data = await self.api.async_get_vehicles()
             return {vehicle[ATTR_VIN]: vehicle for vehicle in data}

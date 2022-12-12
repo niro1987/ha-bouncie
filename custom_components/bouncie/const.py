@@ -50,7 +50,6 @@ BOUNCIE_SCHEMA = vol.Schema(
 # Component
 DOMAIN = "bouncie"
 BOUNCIE_EVENT = f"{DOMAIN}_webhook"
-ICON_CAR = "mdi:car"
 UPDATE_INTERVAL = timedelta(seconds=10)
 HA_URL = f"/api/{DOMAIN}"
 API = "api"

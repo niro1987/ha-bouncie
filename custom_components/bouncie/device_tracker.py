@@ -32,7 +32,6 @@ from .const import (
     BOUNCIE_PORTAL,
     DOMAIN,
     EVENT_TRIPDATA,
-    ICON,
     UPDATE_INTERVAL,
     VEHICLES_COORDINATOR,
 )
@@ -62,7 +61,7 @@ async def async_setup_entry(
 class BouncieDeviceTracker(CoordinatorEntity, TrackerEntity):
     """Bouncie device tracker."""
 
-    _attr_icon: str = ICON
+    _attr_icon: str = "mdi:car"
 
     def __init__(
         self,
