@@ -2,30 +2,33 @@
     "config": {
         "step": {
             "user": {
-                "title": "Blueprint",
-                "description": "If you need help with the configuration have a look here: https://github.com/custom-components/integration_blueprint",
+                "title": "Connect to a new Bouncie app",
                 "data": {
-                    "username": "Username",
-                    "password": "Password"
+                    "name": "Name",
+                    "client_id": "Client ID",
+                    "client_secret": "Client Secret",
+                    "api_key": "API Key"
                 }
+            },
+            "choose_name": {
+                "title": "Create a name for your account",
+                "data": {
+                    "name": "Name"
+                }
+            },
+            "reauth_confirm": {
+                "title": "Reauthenticate Integration",
+                "description": "The Bouncie integration needs to re-authenticate your account"
             }
-        },
-        "error": {
-            "auth": "Username/Password is wrong."
         },
         "abort": {
-            "single_instance_allowed": "Only a single instance is allowed."
-        }
-    },
-    "options": {
-        "step": {
-            "user": {
-                "data": {
-                    "binary_sensor": "Binary sensor enabled",
-                    "sensor": "Sensor enabled",
-                    "switch": "Switch enabled"
-                }
-            }
+            "missing_configuration": "The component is not configured. Please follow the documentation.",
+            "authorize_url_timeout": "Timeout generating authorize URL.",
+            "no_external_url": "You do not have an external URL for your Home Assistant instance configured which is needed to set up the Bouncie integration. You need to set the `external_url` property in the `homeassistant` section of your `configuration.yaml`, or set the `External URL` property in the Home Assistant `General Configuration` UI, before trying to setup the Bouncie integration again. You can learn more about configuring this parameter [here](https://www.home-assistant.io/docs/configuration/basic)",
+            "reauth_successful": "Re-authentication was successful"
+        },
+        "create_entry": {
+            "default": "Successfully authenticated"
         }
     }
 }
