@@ -50,7 +50,7 @@ BOUNCIE_SCHEMA = vol.Schema(
 # Component
 DOMAIN = "bouncie"
 BOUNCIE_EVENT = f"{DOMAIN}_webhook"
-UPDATE_INTERVAL = timedelta(seconds=10)
+UPDATE_INTERVAL = timedelta(hours=1)
 HA_URL = f"/api/{DOMAIN}"
 API = "api"
 USER_COORDINATOR = "user_coordinator"
@@ -82,9 +82,9 @@ EVENT_DISCONNECT = "disconnect"
 EVENT_BATTERY = "battery"
 EVENT_MIL = "mil"
 EVENT_TRIPSTART = "tripStart"
-EVENT_TRIPDATA = "tripData"
-EVENT_TRIPMETRICS = "tripMetrics"
 EVENT_TRIPEND = "tripEnd"
+EVENT_TRIPMETRICS = "tripMetrics"
+EVENT_TRIPDATA = "tripData"
 
 # Platforms
 DEVICE_TRACKER = "device_tracker"
