@@ -128,7 +128,6 @@ class BouncieWebhookRequestView(HomeAssistantView):
             try:
                 data = await request.json()
                 status = WEBHOOK_RESPONSE_SCHEMA(data)
-                # _LOGGER.info("Received event: %s", status)
                 hass.bus.async_fire(
                     f"{BOUNCIE_EVENT}", {**status, CONF_CLIENT_ID: client_id}
                 )
@@ -164,7 +163,6 @@ class BouncieVehiclesDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, dict[str, Any]]:
         """Update data via library."""
-        _LOGGER.info("Refresh data")
         try:
             data = await self.api.async_get_vehicles()
             return {vehicle[ATTR_VIN]: vehicle for vehicle in data}

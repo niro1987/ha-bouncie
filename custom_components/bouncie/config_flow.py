@@ -51,7 +51,6 @@ class BouncieOAuth2FlowHandler(
             return self.async_show_form(step_id="user", data_schema=BOUNCIE_SCHEMA)
 
         if user_input:
-            _LOGGER.info("config_flow: %s", user_input)
             await self.async_set_unique_id(
                 f"{DOMAIN}_{slugify(user_input[CONF_CLIENT_ID])}",
                 raise_on_progress=True,
