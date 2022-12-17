@@ -2,6 +2,7 @@
 [![License][license-shield]][license]
 [![Project Maintenance][user_profile-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+[![hacs_badge][hacs-custom]][hacs]
 
 _Component to integrate with [Bouncie][bouncie]._
 
@@ -39,3 +40,5 @@ Platform | Description
 [license-shield]: https://img.shields.io/github/license/niro1987/ha-bouncie.svg?style=for-the-badge
 [releases]: https://github.com/niro1987/ha-bouncie/releases
 [releases-shield]: https://img.shields.io/github/release/niro1987/ha-bouncie.svg?style=for-the-badge
+[hacs]: https://github.com/hacs/integration
+[hacs-custom]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge
