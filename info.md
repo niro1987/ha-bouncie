@@ -30,7 +30,7 @@ Platform | Description
 ***
 
 [bouncie]: https://github.com/niro1987/ha-bouncie
-[bouncieimg]: bouncie.webp
+[bouncieimg]: logo.png
 [user_profile]: https://github.com/niro1987
 [user_profile-shield]: https://img.shields.io/badge/maintainer-Niels%20Perfors%20%40niro1987-blue.svg?style=for-the-badge
 [buymecoffee]: https://www.buymeacoffee.com/niro1987
