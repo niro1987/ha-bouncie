@@ -1,7 +1,4 @@
 homeassistant
-aiohttp==3.8.1
-aiohttp_cors==0.7.0
 black==22.1.0
 isort==5.10.1
 pylint==2.12.2
-voluptuous==0.13.1
