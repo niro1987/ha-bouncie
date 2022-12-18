@@ -35,15 +35,9 @@ VEHICLES_URL = "https://api.bouncie.dev/v1/vehicles"
 TRIPS_URL = "https://api.bouncie.dev/v1/trips"
 BOUNCIE_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_CLIENT_ID, default="bouncie-home-assistant"): vol.Coerce(str),
-        vol.Required(
-            CONF_CLIENT_SECRET,
-            default="J8hC3g67xb1zoRV4ADbPtrDgPbG2XNk1ejsi7vIeNrzFJPntVR",
-        ): vol.Coerce(str),
-        vol.Required(
-            CONF_API_KEY,
-            default="ge2hvSkHkf2zaEa8AhZ4QzgvHbKqy8JqcFnhGVG58jRNgszne3",
-        ): vol.Coerce(str),
+        vol.Required(CONF_CLIENT_ID): vol.Coerce(str),
+        vol.Required(CONF_CLIENT_SECRET): vol.Coerce(str),
+        vol.Required(CONF_API_KEY): vol.Coerce(str),
     }
 )
 

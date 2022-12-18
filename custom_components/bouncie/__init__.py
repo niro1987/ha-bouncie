@@ -61,28 +61,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data[DOMAIN][entry.entry_id][VEHICLES_COORDINATOR] = vehicles_coordinator
     hass.data[DOMAIN][CONF_CLIENT_ID].add(entry.data[CONF_CLIENT_ID])
 
-    try:
-        await api.async_get_user()
-    except (HTTPUnauthorized, ClientResponseError) as err:
-        if isinstance(err, ClientResponseError) and err.status not in (400, 401):
-            return False
-
-        # If we are not authorized, we need to revalidate OAuth
-        if not [
-            flow
-            for flow in hass.config_entries.flow.async_progress()
-            if flow["context"]["source"] == SOURCE_REAUTH
-            and flow["context"]["unique_id"] == entry.unique_id
-        ]:
-            hass.async_create_task(
-                hass.config_entries.flow.async_init(
-                    DOMAIN,
-                    context={"source": SOURCE_REAUTH, "unique_id": entry.unique_id},
-                    data=entry.data,
-                )
-            )
-        return False
-
     # Register view
     hass.http.register_view(BouncieWebhookRequestView())
 
