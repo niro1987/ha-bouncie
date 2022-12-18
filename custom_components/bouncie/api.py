@@ -39,12 +39,6 @@ class BouncieAPI:
         """Bouncie API Client."""
         self._oauth_session: BouncieSession = oauth_session
 
-    async def async_get_access_token(self) -> dict:
-        """Return a valid access token."""
-        await self._oauth_session.async_ensure_token_valid()
-
-        return self._oauth_session.token
-
     async def async_get_user(self) -> Dict[str, Any]:
         """Get associated user information."""
         resp = await self._oauth_session.async_request(
