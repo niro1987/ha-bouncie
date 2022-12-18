@@ -4,6 +4,9 @@
   "documentation": "https://github.com/niro1987/ha-bouncie",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/niro1987/ha-bouncie/issues",
+  "dependencies": [
+    "http"
+  ],
   "version": "0.0.1",
   "config_flow": true,
   "codeowners": [
