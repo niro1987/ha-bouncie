@@ -28,7 +28,7 @@ class BouncieOAuth2FlowHandler(
 
     DOMAIN = DOMAIN
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_PUSH
 
     @property
     def logger(self) -> logging.Logger:
