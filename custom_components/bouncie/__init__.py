@@ -1,9 +1,7 @@
 """The Bouncie integration."""
 from logging import getLogger
 
-from aiohttp.client_exceptions import ClientResponseError
-from aiohttp.web_exceptions import HTTPUnauthorized
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 
